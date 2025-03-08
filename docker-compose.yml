@@ -1,0 +1,26 @@
+services:
+  trigger:
+    build:
+      context: .
+      args:
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    image: 'backend:latest'
+    networks:
+      - rfhamster
+    env_file:
+      - .env
+    ports:
+      - "80:80"
+    environment:
+      - ENV_FILE='.env'
+    volumes:
+      - ./app:/app/app
+    platform: linux/amd64
+
+volumes:
+  app-db-data:
+
+networks:
+  rfhamster:
+    name: rfhamster
+    driver: bridge
