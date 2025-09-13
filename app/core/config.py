@@ -32,33 +32,19 @@ class Settings(BaseSettings):
         extra='ignore',
     )
 
-    POSTGRES_SERVER: str
+    POSTGRES_SERVER: str = ''
     POSTGRES_PORT: int = 5432
     POSTGRES_DB: str = 'postgres'
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
+    POSTGRES_USER: str = ''
+    POSTGRES_PASSWORD: str = ''
 
     @computed_field
     @property
-    def sqlalchemy_db_uri(self) -> PostgresDsn:
-        return MultiHostUrl.build(
-            scheme='postgresql+psycopg',
-            host=self.POSTGRES_SERVER,
-            port=self.POSTGRES_PORT,
-            path=self.POSTGRES_DB,
-            username=self.POSTGRES_USER,
-            password=self.POSTGRES_PASSWORD,
-        )
+    def sqlalchemy_db_uri(self) -> str:
+        return f'postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}'
 
-    NVIDIA_NIM_API_KEY: str
-
-    NVIDIA_LLAMA_NEMOTROM_3_3_NAME: str
-    NVIDIA_LLAMA_NEMOTROM_3_3_API_KEY: str
-
-    NVIDIA_LLAMA_NEMOTROM_3_1_NAME: str
-    NVIDIA_LLAMA_NEMOTROM_3_1_API_KEY: str
-
-    GEMINI_API_KEY: str
+    NVIDIA_NIM_API_KEY: str = ''
+    GEMINI_API_KEY: str = ''
 
 
 settings = Settings()

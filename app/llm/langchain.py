@@ -1,15 +1,16 @@
-from app.core.config import (
-    settings,
-    LLM_PARAMETERS,
-    NVIDIA_CHAT_MODELS,
-    GOOGLE_CHAT_MODELS,
-    GEMINI_2_0_FLASH,
-)
-from app.llm.prompts.teacher_agent import PROMPT_V2
-from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
+
+from app.core.config import (
+    GEMINI_2_0_FLASH,
+    GOOGLE_CHAT_MODELS,
+    LLM_PARAMETERS,
+    NVIDIA_CHAT_MODELS,
+    settings,
+)
+from app.llm.prompts.teacher_agent import PROMPT_V2
 
 
 def load_nvidia_chat_model(model_name: str) -> ChatNVIDIA:
