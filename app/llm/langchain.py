@@ -3,6 +3,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 
+from app.agents.teacher_agent import PROMPT_TEACHER_AGENT
 from app.core.config import (
     GEMINI_2_0_FLASH,
     GOOGLE_CHAT_MODELS,
@@ -10,7 +11,6 @@ from app.core.config import (
     NVIDIA_CHAT_MODELS,
     settings,
 )
-from app.llm.prompts.teacher_agent import PROMPT_V2
 
 
 def load_nvidia_chat_model(model_name: str) -> ChatNVIDIA:
@@ -50,11 +50,18 @@ def langchain_make_question(
 ):
     llm = init_llm_model(model_name)
     prompt = PromptTemplate(
-        template=PROMPT_V2, input_variables=['question', 'code']
+        template=PROMPT_TEACHER_AGENT,
+        input_variables=['student_message', 'student_code', 'code_analysis'],
     )
     chain = prompt | llm | StrOutputParser()
 
-    answer = chain.invoke({'question': question, 'code': code})
+    answer = chain.invoke(
+        {
+            'student_message': question,
+            'student_code': code,
+            'code_analysis': 'Sem analises',
+        }
+    )
 
     return answer
 
@@ -64,31 +71,16 @@ async def langchain_make_question_stream(
 ):
     llm = init_llm_model(model_name)
     prompt = PromptTemplate(
-        template=PROMPT_V2, input_variables=['question', 'code']
+        template=PROMPT_TEACHER_AGENT,
+        input_variables=['student_message', 'student_code', 'code_analysis'],
     )
     chain = prompt | llm | StrOutputParser()
 
-    async for chunk in chain.astream({'question': question, 'code': code}):
+    async for chunk in chain.astream(
+        {
+            'student_message': question,
+            'student_code': code,
+            'code_analysis': 'Sem analises',
+        }
+    ):
         yield chunk
-
-
-eg_code = """
-def p(p):
-  r = "" 
-  x = len(p) - 1 
-  while x > 0:
-    r = r + p[x] 
-    x = x - 1
-  if r == p:
-    return True
-  else:
-    return "não"
-
-print(p("arara"))
-print(p("python"))
-print(p("reviver"))
-
-"""
-
-
-eg_question = 'O que está acontecendo de errado aqui'

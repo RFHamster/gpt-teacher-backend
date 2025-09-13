@@ -7,9 +7,16 @@ from fastapi.responses import StreamingResponse
 
 from app.agents.code_analyser_agent import call_code_analyser_agent
 from app.agents.teacher_agent import call_teacher_agent_agent
-from app.core.config import settings
 from app.core.deps import SessionDep
-from app.llm.agno import generate_stream, get_default_agno_model
+from app.crud import (
+    CodeAnalysisCreate,
+    StudentMessageCreate,
+    TeacherResponseCreate,
+    create_code_analysis,
+    create_student_message,
+    create_student_session,
+    create_teacher_response,
+)
 from app.llm.langchain import (
     langchain_make_question,
     langchain_make_question_stream,
@@ -40,7 +47,7 @@ async def fake_text_streamer():
         await asyncio.sleep(1)  # Simula um delay para o streaming
 
 
-@app.post('/stream')
+@app.post('/fake_stream')
 async def main(request_body: RequestBodyQuestion):
     print(request_body.session_id)
     response = StreamingResponse(fake_text_streamer(), media_type='text/plain')
@@ -56,31 +63,56 @@ def call(request_body: RequestBodyQuestion, session: SessionDep):
 
 
 @app.post('/call/agno/')
-def call_agno(request_body: RequestBodyQuestion, session: SessionDep):
+async def call_agno(request_body: RequestBodyQuestion, session: SessionDep):
     if not request_body.session_id:
-        request_body.session_id = str(uuid.uuid4())
-    print("teste")
+        student_session = await create_student_session(db=session)
+        request_body.session_id = student_session.id
+
+    student_message = await create_student_message(
+        StudentMessageCreate(
+            session_id=request_body.session_id,
+            code=request_body.code,
+            message=request_body.question,
+        ),
+        session,
+    )
+
     senior_analysis = call_code_analyser_agent(
-        session_id=request_body.session_id,
+        session_id=str(request_body.session_id),
         code=request_body.code,
         question=request_body.question,
     )
-    print("teste")
+
+    await create_code_analysis(
+        CodeAnalysisCreate(
+            message_id=student_message.id,
+            analysis=senior_analysis.model_dump(),
+        ),
+        session,
+    )
+
     teacher_message = call_teacher_agent_agent(
-        session_id=request_body.session_id,
+        session_id=str(request_body.session_id),
         code=request_body.code,
         question=request_body.question,
         code_analysis=senior_analysis,
     )
-    print("teste")
+
+    await create_teacher_response(
+        TeacherResponseCreate(
+            message_id=student_message.id, response=teacher_message
+        ),
+        session,
+    )
+
     def stream_response(teacher_message):
         for chunk in teacher_message:
             yield chunk
 
     return StreamingResponse(
         stream_response(teacher_message),
-        media_type="text/plain",
-        headers={"X-Session-ID": request_body.session_id}
+        media_type='text/plain',
+        headers={'X-Session-ID': str(request_body.session_id)},
     )
 
 
