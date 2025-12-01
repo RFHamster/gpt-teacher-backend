@@ -61,6 +61,7 @@ def get_code_analyser_agno_agent(session_id: str):
     return Agent(
         output_schema=AnaliseCodigoCompleta,
         model=get_default_agno_model(),
+        reasoning=False,
         markdown=True,
         db=PostgresDb(
             db_url=settings.sqlalchemy_db_uri, session_table='sessions'
