@@ -1,5 +1,6 @@
 import asyncio
 import uuid
+import time
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
@@ -188,6 +189,7 @@ async def call_agno_system(request_body: QuestionRequest, session: SessionDep):
     ```
     """
     try:
+        print('Start')
         # Cria nova sessão se não fornecida
         if not request_body.session_id:
             student_session = await create_student_session(db=session)
@@ -204,13 +206,16 @@ async def call_agno_system(request_body: QuestionRequest, session: SessionDep):
         )
 
         # Executa análise de código
+        start_time = time.time()
         senior_analysis = call_code_analyser_agent(
             session_id=str(request_body.session_id),
             code=request_body.code,
             question=request_body.question,
         )
+        print(f"Code Analyser Agent: {time.time() - start_time:.2f}s")
 
         # Salva análise no banco
+        start_time = time.time()
         await create_code_analysis(
             CodeAnalysisCreate(
                 message_id=student_message.id,
@@ -218,14 +223,17 @@ async def call_agno_system(request_body: QuestionRequest, session: SessionDep):
             ),
             session,
         )
+        print(f"Save Code Analysis: {time.time() - start_time:.2f}s")
 
         # Gera resposta pedagógica
+        start_time = time.time()
         teacher_message = call_teacher_agent_agent(
             session_id=str(request_body.session_id),
             code=request_body.code,
             question=request_body.question,
             code_analysis=senior_analysis,
         )
+        print(f"Teacher Agent: {time.time() - start_time:.2f}s")
 
         # Salva resposta do professor
         await create_teacher_response(
@@ -252,7 +260,6 @@ async def call_agno_system(request_body: QuestionRequest, session: SessionDep):
             status_code=500,
             detail=f"Erro no sistema de agentes: {str(e)}"
         )
-
 
 @app.post(
     '/call/langchain/',
